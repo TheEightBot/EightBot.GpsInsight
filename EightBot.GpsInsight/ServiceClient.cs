@@ -64,7 +64,7 @@ namespace EightBot.GpsInsight
 
         public async Task<IEnumerable<Model.VehicleRuntime>> GetVechicleRuntimeAsync(string vehicleIdentifier)
         {
-            var runtimeInfo = await GetAsync<Model.Response<List<Model.VehicleRuntime>>>(String.Format("vehicle/runtime?vehicle={0}&token={1}", vehicleIdentifier, AuthToken));
+            var runtimeInfo = await GetAsync<Model.Response<List<Model.VehicleRuntime>>>(String.Format("vehicle/runtime?vehicle={0}&date={1}&token={2}", vehicleIdentifier, DateTime.Now.ToString(), AuthToken));
 
             if (runtimeInfo == null || runtimeInfo.Content == null)
                 return Enumerable.Empty<Model.VehicleRuntime>();
