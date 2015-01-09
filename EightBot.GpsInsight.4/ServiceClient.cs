@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Text;
-using System.Threading.Tasks;
-using Newtonsoft.Json;
 
 namespace EightBot.GpsInsight
 {
@@ -32,19 +29,19 @@ namespace EightBot.GpsInsight
         {
         }
 
-        public async Task<string> LoginAsync(string username, string appToken)
+        public string LoginAsync(string username, string appToken)
         {
-            var authInfo = await GetAsync<Model.Response<Model.Token>>(String.Format("UserAuth/login?username={0}&app_token={1}", username, appToken));
+            var authInfo = GetAsync<Model.Response<Model.Token>>(String.Format("UserAuth/login?username={0}&app_token={1}", username, appToken));
 
             if (authInfo == null || authInfo.Content == null)
-                    return string.Empty;
+                return string.Empty;
 
             return authInfo.Content.token;
         }
 
-        public async Task<Model.VehicleInfo> GetVechicleAsync(string vehicleIdentifier)
+        public Model.VehicleInfo GetVechicleAsync(string vehicleIdentifier)
         {
-            var authInfo = await GetAsync<Model.Response<List<Model.VehicleInfo>>>(String.Format("vehicle/read?vehicle={0}&token={1}", vehicleIdentifier, AuthToken));
+            var authInfo = GetAsync<Model.Response<List<Model.VehicleInfo>>>(String.Format("vehicle/read?vehicle={0}&token={1}", vehicleIdentifier, AuthToken));
 
             if (authInfo == null || authInfo.Content == null || !authInfo.Content.Any())
                 return default(Model.VehicleInfo);
@@ -52,9 +49,9 @@ namespace EightBot.GpsInsight
             return authInfo.Content.FirstOrDefault();
         }
 
-        public async Task<IEnumerable<Model.VehicleInfo>> GetVechiclesAsync()
+        public IEnumerable<Model.VehicleInfo> GetVechiclesAsync()
         {
-            var authInfo = await GetAsync<Model.Response<List<Model.VehicleInfo>>>(String.Format("user/listvehicles?token={0}", AuthToken));
+            var authInfo = GetAsync<Model.Response<List<Model.VehicleInfo>>>(String.Format("user/listvehicles?token={0}", AuthToken));
 
             if (authInfo == null || authInfo.Content == null)
                 return Enumerable.Empty<Model.VehicleInfo>();
@@ -62,9 +59,9 @@ namespace EightBot.GpsInsight
             return authInfo.Content;
         }
 
-        public async Task<IEnumerable<Model.VehicleRuntime>> GetVechicleRuntimeAsync(string vehicleIdentifier)
+        public IEnumerable<Model.VehicleRuntime> GetVechicleRuntimeAsync(string vehicleIdentifier)
         {
-            var runtimeInfo = await GetAsync<Model.Response<List<Model.VehicleRuntime>>>(String.Format("vehicle/runtime?vehicle={0}&date={1}&token={2}", vehicleIdentifier, DateTime.Now.ToString(), AuthToken));
+            var runtimeInfo = GetAsync<Model.Response<List<Model.VehicleRuntime>>>(String.Format("vehicle/runtime?vehicle={0}&date={1}&token={2}", vehicleIdentifier, DateTime.Now.ToString(), AuthToken));
 
             if (runtimeInfo == null || runtimeInfo.Content == null)
                 return Enumerable.Empty<Model.VehicleRuntime>();
@@ -73,26 +70,25 @@ namespace EightBot.GpsInsight
         }
 
 
-        private async Task<T> GetAsync<T>(string path)
+        private T GetAsync<T>(string path)
         {
             using (var client = CreateRestClient())
             {
-                var getDataResponse = await client.GetAsync(path, HttpCompletionOption.ResponseContentRead);
+                var getDataResponse = client.GetAsync(path, HttpCompletionOption.ResponseContentRead).Result;
 
                 //If we do not get a successful status code, then return an empty set
                 if (!getDataResponse.IsSuccessStatusCode)
                     return default(T);
-                var asdf = await getDataResponse.Content.ReadAsStringAsync();
-                var safdsfsdf = asdf.ToString();
-                return await Task.Run(async () => JsonConvert.DeserializeObject<T>(await getDataResponse.Content.ReadAsStringAsync()));
+
+                return JsonConvert.DeserializeObject<T>(getDataResponse.Content.ReadAsStringAsync().Result);
             }
         }
 
 
-        public async static Task<ServiceClient> CreateServiceClientAsync(string username, string appToken)
+        public static ServiceClient CreateServiceClientAsync(string username, string appToken)
         {
             var serviceClient = new ServiceClient();
-            serviceClient.AuthToken = await serviceClient.LoginAsync(username, appToken);
+            serviceClient.AuthToken = serviceClient.LoginAsync(username, appToken);
 
             if (String.IsNullOrEmpty(serviceClient.AuthToken))
                 throw new UnauthorizedAccessException("Invalid username or appToken provided");
